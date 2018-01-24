@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+		<title>Darthoridan Steelbow interactive character sheet</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script type="text/javascript">
+			function Charsheet () {
+				//TABLE CONSTANTS
+				this.save_progression = {
+					"poor": [0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5,  5,  5,  6,  6,  6],
+					"good": [2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12]
+				};
+				
+				this.bab_progression = {
+					"high": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+					"mid" : [0, 1, 2, 3, 3, 4, 5, 6, 6,  7,  8,  9,  9, 10, 11, 12, 12, 13, 14, 15],
+					"low" : [0, 1, 1, 2, 2, 3, 3, 4, 4,  5,  5,  6,  6,  7,  7,  8,  8,  9,  9, 10]
+				};
+				
+				this.size_mods = [
+					{ name: "Fine", value: 0, space: 0.5, reach: 0, cmb_bonus: -8, ac_bonus: 8, fly_mod: 8, stealth_mod: 16 },
+					{ name: "Diminutive", value: 1, space: 1, reach: 0, cmb_bonus: -4, ac_bonus: 4, fly_mod: 6, stealth_mod: 12 },
+					{ name: "Tiny", value: 2, space: 2.5, reach: 0, cmb_bonus: -2, ac_bonus: 2, fly_mod: 4, stealth_mod: 8 },
+					{ name: "Small", value: 3, space: 5, reach: 5, cmb_bonus: -1, ac_bonus: 1, fly_mod: 2, stealth_mod: 4 },
+					{ name: "Medium", value: 4, space: 5, reach: 5, cmb_bonus: 0, ac_bonus: 0, fly_mod: 0, stealth_mod: 0 },
+					{ name: "Large", value: 5, space: 10, reach: 10, cmb_bonus: 1, ac_bonus: -1, fly_mod: -2, stealth_mod: -4 },
+					{ name: "Huge", value: 6, space: 15, reach: 15, cmb_bonus: 2, ac_bonus: -2, fly_mod: -4, stealth_mod: -8 },
+					{ name: "Gargantuan", value: 7, space: 20, reach: 20, cmb_bonus: 4, ac_bonus: -4, fly_mod: -6, stealth_mod: -12 },
+					{ name: "Colossal", value: 8, space: 30, reach: 30, cmb_bonus: 8, ac_bonus: -8, fly_mod: -8, stealth_mod: -16 }
+				];
+				
+				this.maneuverability_mod = {"Clumsy": -8, "Poor": -4, "Average": 0, "Good": 4, "Perfect": 8};
+				
+				this.die_scaling = ["1", "1d2", "1d3", "1d4", "1d6", "1d8", "1d10", "2d6", "2d8", "3d6", "3d8", "4d6", "4d8", "6d6", "6d8", "8d6", "8d8", "12d6", "12d8", "16d6"];
+				
+				this.carrying_capacity = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 115, 130, 150, 175, 200, 230, 260, 300, 350, 400, 460, 520, 600, 700, 800, 920, 1040, 1200, 1400, 1600];
+			
+				//Statistics
+				this.name = "name";
+				this.race = "race";
+				this.gender = "gender";
+				this.size_normal = this.size = this.size_mods[4];
+				this.alignment = "alignment";
+				this.background = "old job";
+				this.languages = ["Common"];
+				
+				this.height = 0;
+				this.weight = 0;
+				this.age = 0;
+				
+				this.base_strength = this.strength = 10;
+				this.base_dexterity = this.dexterity = 10;
+				this.base_constitution = this.constitution = 10;
+				this.base_intelligence = this.intelligence = 10;
+				this.base_wisdom = this.wisdom = 10;
+				this.base_charisma = this.charisma = 10;
+				
+				this.load = 0;
+				this.encumbered = 0;
+				
+				this.ignore_asf = {
+					"Light Armor": false,
+					"Medium Armor": false,
+					"Heavy Armor": false,
+					"Shield": false,
+					"Tower Shield": false
+				};
+				
+				this.class_skill_bonus = 3;
+				
+				this.str_mod = { value: 0 };
+				this.dex_mod = { value: 0 };
+				this.con_mod = { value: 0 };
+				this.int_mod = { value: 0 };
+				this.wis_mod = { value: 0 };
+				this.cha_mod = { value: 0 };
+				
+				this.initiative = { value: 0, conditional: "" };
+				
+				this.ac_normal = { value: 10, conditional: "" };
+				this.ac_touch = { value: 10, conditional: "" };
+				this.ac_flatfooted = { value: 10, conditional: "" };
+				
+				this.dodge_bonus = { value: 0, conditional: "" };
+				this.natural_armor = { value: 0, conditional: "" };
+				
+				this.max_dex_bonus = { value: 0, conditional: "" };
+				this.armor_check_penalty = { value: 0, conditional: "" };
+				this.arcane_spell_failure = { value: 0, conditional: "" };
+				
+				this.fort = { value: 0, sources: "", conditional: "" };
+				this.will = { value: 0, sources: "", conditional: "" };
+				this.ref = { value: 0, sources: "", conditional: "" };
+				
+				this.bab = { value: 0, conditional: "" };
+				
+				this.base_speed = this.speed = { value: 0, conditional: "" };
+				this.base_fly_speed = this.fly_speed = { value: 0, conditional: "" };
+				this.base_climb_speed = this.climb_speed = { value: 0, conditional: "" };
+				this.base_burrow_speed = this.burrow_speed = { value: 0, conditional: "" };
+				this.base_swim_speed = this.swim_speed = { value: 0, conditional: "" };
+				this.base_maneuverability = this.maneuverability = "Average";
+				this.run_multiplier = 4;
+				
+				this.hp = 0;
+				this.max_hp = 0;
+				this.tmp_hp = 0;
+				
+				this.cmb = { value: 0, conditional: "" };
+				this.cmd = { value: 0, conditional: "" };
+				this.cmd_flatfooted = { value: 0, conditional: "" };
+				
+				this.nonlethal_dmg = 0;
+				
+				this.str_damage = 0;
+				this.dex_damage = 0;
+				this.con_damage = 0;
+				this.int_damage = 0;
+				this.wis_damage = 0;
+				this.cha_damage = 0;
+				
+				this.magic_items = {
+					"Armor": { name: "N/A" },
+					"Belt": { name: "N/A" },
+					"Body": { name: "N/A" },
+					"Chest": { name: "N/A" },
+					"Eyes": { name: "N/A" },
+					"Feet": { name: "N/A" },
+					"Hands": { name: "N/A" },
+					"Head": { name: "N/A" },
+					"Headband": { name: "N/A" },
+					"Neck": { name: "N/A" },
+					"Ring 1": { name: "N/A" },
+					"Ring 2": { name: "N/A" },
+					"Shield": { name: "N/A" },
+					"Shoulders": { name: "N/A" },
+					"Wrists": { name: "N/A" },
+					"Unslotted": []
+				};
+				
+				this.weapons = [];
+				this.gear = [];
+				
+				this.proficiencies = [];
+				
+				this.resource_pools = [];
+				
+				this.spells_per_day = [];
+				
+				this.spells_known = [];
+				
+				this.feats = [];
+				
+				this.special_abilities = [];
+				
+				this.bonuses = [];
+				
+				this.levels = [];
+				
+				this.character_level = 0;
+				
+				this.skill_mods = [];
+				
+				this.skills = {
+					"Acrobatics": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Appraise": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Autohypnosis": {
+						ability: this.wis_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Bluff": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Climb": {
+						ability: this.str_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Craft (alchemy)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Diplomacy": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Disable Device": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: true,
+						ranks: 0
+					},
+					"Disguise": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Escape Artist": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Fly": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Handle Animal": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Heal": {
+						ability: this.wis_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Intimidate": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Knowledge (arcana)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (dungeoneering)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (engineering)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (geography)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (history)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (local)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (nature)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (nobility)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (planes)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (psionics)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Knowledge (religion)": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Linguistics": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Perception": {
+						ability: this.wis_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Ride": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Sense Motive": {
+						ability: this.wis_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Sleight of Hand": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: true,
+						ranks: 0
+					},
+					"Spellcraft": {
+						ability: this.int_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					},
+					"Stealth": {
+						ability: this.dex_mod,
+						class_skill: false,
+						acp: true,
+						trained_only: false,
+						ranks: 0
+					},
+					"Survival": {
+						ability: this.wis_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Swim": {
+						ability: this.str_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: false,
+						ranks: 0
+					},
+					"Use Magic Device": {
+						ability: this.cha_mod,
+						class_skill: false,
+						acp: false,
+						trained_only: true,
+						ranks: 0
+					}
+				};
+				
+				//Functions
+				this.recalculate_mods = function(){
+					this.strength = this.base_strength + this.get_bonuses("STRENGTH") - this.str_damage;
+					this.dexterity = this.base_dexterity + this.get_bonuses("DEXTERITY") - this.dex_damage;
+					this.constitution = this.base_constitution + this.get_bonuses("CONSTITUTION") - this.con_damage;
+					this.intelligence = this.base_intelligence + this.get_bonuses("INTELLIGENCE") - this.int_damage;
+					this.wisdom = this.base_wisdom + this.get_bonuses("WISDOM") - this.wis_damage;
+					this.charisma = this.base_charisma + this.get_bonuses("CHARISMA") - this.cha_damage;
+				
+					this.str_mod.value = Math.floor((this.strength - 10) / 2);
+					this.dex_mod.value = Math.floor((this.dexterity - 10) / 2);
+					this.con_mod.value = Math.floor((this.constitution - 10) / 2);
+					this.int_mod.value = Math.floor((this.intelligence - 10) / 2);
+					this.wis_mod.value = Math.floor((this.wisdom - 10) / 2);
+					this.cha_mod.value = Math.floor((this.charisma - 10) / 2);
+				};
+				
+				this.get_bonuses = function(bonus_to) {
+					return 0;
+				};
+				
+				//Calculate speed reduction for being encumbered.
+				this.speed_reduction = function(speed) {
+					return Math.floor((2*speed + 10) / 15.0) * 5;
+				};
+				
+				//Calculate number of bonus spell slots for having a high casting modifier.
+				this.find_bonus_spells = function(mod) {
+					var bonus_spells = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+					
+					var addon = 3;
+					
+					for(var i = 1; i < 10; i++)
+					{
+						var tmp = Math.floor((mod + addon)/4);
+						if(tmp > 0)
+							bonus_spells[i] = tmp;
+						else
+							break;
+							
+						addon--;
+					}
+					
+					return bonus_spells;
+				};
+				
+				//Generate bonus psionic power points per day from modifier and manifester level
+				this.find_bonus_power_points = function(mod, manifester_level)
+				{
+					return Math.floor(mod*manifester_level/2);
+				};
+				
+				this.find_bab = function(progression, total_levels)
+				{
+					var mod = 0.5;
+					switch(progression)
+					{
+						case "full":
+							mod = 1;
+							break;
+						case "three-quarter":
+							mod = 0.75;
+							break;
+						case "half":
+							mod = 0.5;
+							break;
+						default:
+							return progression[total_levels];	//In case of custom progression, use chart
+					}
+					
+					return Math.floor(mod*total_levels);
+				};
+				
+				this.find_save = function(progression, total_levels)
+				{
+					switch(progression)
+					{
+						case "good":
+							return Math.floor(0.5*total_levels + 2);
+							break;
+						case "poor":
+							return Math.floor(total_levels/3);
+							break;
+						default:
+							return progression[total_levels]; //In case of custom progression
+					}
+				}
+				
+				/*this.recalculate_ac = function(){
+					armor = this.magic_items["Armor"];
+					shield = this.magic_items["Shield"];
+					if(is_null(armor))
+						armor = {
+							bonus: 0,
+							armor_check_penalty: 0,
+							max_dex_bonus: Infinity,
+							arcane_spell_failure: 0,
+							category: "none"
+						};
+					if(is_null(shield))
+						shield = {
+							bonus: 0,
+							armor_check_penalty: 0,
+							max_dex_bonus: Infinity,
+							arcane_spell_failure: 0,
+							category: "none"
+						};
+						
+					encumbrance_max_dex_bonus = Infinity;
+					encumbrance_check_penalty = 0;
+					if(this.encumbered == 2){
+						encumbrance_max_dex_bonus = 3;
+						encumbrance_check_penalty = -3;
+					}
+					else if(this.encumbered == 3) 
+					{
+						encumbrance_max_dex_bonus = 1;
+						encumbrance_check_penalty = -6;
+					}
+					
+					this.max_dex_bonus = Math.min(armor.max_dex_bonus, shield.max_dex_bonus, encumbrance_max_dex_bonus);
+					
+					this.arcane_spell_failure = (this.ignore_asf[armor.category] ? armor.arcane_spell_failure : 0) + (this.ignore_asf[shield.category] ? shield.arcane_spell_failure : 0);
+					this.armor_check_penalty = armor.armor_check_penalty + shield.armor_check_penalty + encumbrance_check_penalty;
+					
+					this.ac_normal = 10 + armor.bonus + shield.bonus + Math.min(this.max_dex_bonus, this.dex_mod.value) + this.size.ac_bonus + this.dodge_bonus + this.natural_armor + this.get_bonuses("AC") + this.get_bonuses("AC_NORMAL");
+					this.ac_touch = 10 + Math.min(this.max_dex_bonus, this.dex_mod.value) + this.size.ac_bonus + this.dodge_bonus + this.get_bonuses("AC") + this.get_bonuses("AC_TOUCH");
+					this.ac_flatfooted = 10 + armor.bonus + shield.bonus + this.size.ac_bonus + this.natural_armor + this.get_bonuses("AC") + this.get_bonuses("AC_FLATFOOT");
+				};
+				
+				this.recalculate_cmb_cmd = function() {
+					this.cmb = this.bab + (this.size.value >= 2 ? this.str_mod.value : this.dex_mod.value) + this.size.cmb_bonus + this.get_bonuses("CMB");
+					this.cmd = 10 + this.bab + this.str_mod.value + this.dex_mod.value + this.size.cmb_bonus + this.dodge_bonus + this.get_bonuses("AC") + this.get_bonuses("CMD");
+					this.cmd_flatfooted = this.cmd - this.dex_mod.value;
+				};
+				
+				this.recalculate_bab = function(){
+					this.levels.foreach(function(element){
+						this.bab += this.bab_progression[element.bab_progression][element.levels];
+					});
+					
+					armor = this.magic_items["Armor"];
+					shield = this.magic_items["Shield"];
+					
+					armor_prof = this.proficiencies[armor.category] || this.proficiencies[armor.name];
+					shield_prof = this.proficiencies[shield.category] || this.proficiencies[shield.name];
+					
+					this.bab += this.size.ac_bonus + (armor_prof ? 0 : armor.armor_check_penalty) + (shield_prof ? 0 : shield.armor_check_penalty);
+				};
+				
+				this.recalculate_saves = function(){
+					this.fort = this.con_mod.value + this.get_bonuses("FORT");
+					this.will = this.wis_mod.value + this.get_bonuses("WILL");
+					this.ref = this.dex_mod.value + this.get_bonuses("REF");
+				
+					this.levels.foreach(function(element){
+						this.fort += this.save_progression[element.fort_progression][element.levels];
+						this.will += this.save_progression[element.will_progression][element.levels];
+						this.ref += this.save_progression[element.ref_progression][element.levels];
+					});
+				};
+				
+				this.recalculate_initiative = function(){
+					this.initiative = this.dex_mod.value + this.get_bonuses("INIT");
+				};
+				
+				this.recalculate_speed = function(){
+					armor = this.magic_items["Armor"];
+					if((armor.category == "Heavy Armor" || armor.category == "Medium Armor" || this.encumbered > 1) && !this.ignore_armor_speed)
+					{
+						this.speed = this.speed_reduction(this.base_speed);
+						if(this.base_burrow_speed > 0) this.burrow_speed = this.speed_reduction(this.base_burrow_speed);
+						if(this.base_climb_speed > 0) this.climb_speed = this.speed_reduction(this.base_climb_speed);
+						if(this.base_fly_speed > 0) this.fly_speed = this.speed_reduction(this.base_fly_speed);
+						if(this.base_swim_speed > 0) this.swim_speed = this.speed_reduction(this.base_swim_speed);
+						if(armor.category == "Heavy Armor" || this.encumbered == 3)
+							this.run_multiplier = 3;
+					}
+					else
+					{
+						this.speed = this.base_speed;
+						this.burrow_speed = this.base_burrow_speed;
+						this.climb_speed = this.base_climb_speed;
+						this.fly_speed = this.base_fly_speed;
+						this.swim_speed = this.base_swim_speed;
+						this.run_multiplier = 4;
+					}
+					
+					this.speed += this.get_bonuses("SPEED");
+					this.burrow_speed += this.get_bonuses("BURROW_SPEED");
+					this.climb_speed += this.get_bonuses("CLIMB_SPEED");
+					this.fly_speed += this.get_bonuses("FLY_SPEED");
+					this.run_multiplier += this.get_bonuses("RUN");
+					
+					if(this.climb_speed > 0)
+						this.add_bonus("Climb", "racial", 8, false);
+					if(this.swim_speed > 0)
+						this.add_bonus("Swim", "racial", 8, false);
+					if(this.fly_speed > 0)
+					{
+						this.add_bonus("Fly", "size", this.size.fly_mod, false);
+						this.add_bonus("Fly", "untyped", this.maneuverability_mod[this.maneuverability], false);
+						this.skills["Fly"].class_skill = true;
+					}
+				}
+				
+				this.recalculate_skills = function(){
+					this.skill_mods = array();
+					
+					this.skills.foreach(function(element, skill, skill_array){
+						if(element.trained_only && !element.ranks)
+						{
+							return;
+						}
+						else
+						{
+							this.skill_mods[skill] = element.ability.value + (element.class_skill && element.ranks ? this.class_skill_bonus : 0) + (element.acp ? this.armor_check_penalty : 0) + element.ranks + this.get_bonuses(skill);
+						}
+					}, this);
+				};*/
+				
+			}
+			
+			function SheetWriter(sheet) {
+				var div = $("#charsheet");
+				var charsheet = sheet;
+				
+				
+				//this.output = function() {
+					var divcontent = "<div id='stats'>";
+					divcontent += "<table id='character_attributes'><caption>Attributes</caption><tr><th>&nbsp;</th><th>Value</th><th>Modifier</th></tr>";
+					divcontent += "<tr><td class='attribute_name'>Strength<td>"+charsheet.strength+"</td><td>"+charsheet.str_mod.value+"</td></td></tr>";
+					divcontent += "<tr><td class='attribute_name'>Dexterity<td>"+charsheet.dexterity+"</td><td>"+charsheet.dex_mod.value+"</td></td></tr>";
+					divcontent += "<tr><td class='attribute_name'>Constitution<td>"+charsheet.constitution+"</td><td>"+charsheet.con_mod.value+"</td></td></tr>";
+					divcontent += "<tr><td class='attribute_name'>Intelligence<td>"+charsheet.intelligence+"</td><td>"+charsheet.int_mod.value+"</td></td></tr>";
+					divcontent += "<tr><td class='attribute_name'>Wisdom<td>"+charsheet.wisdom+"</td><td>"+charsheet.wis_mod.value+"</td></td></tr>";
+					divcontent += "<tr><td class='attribute_name'>Charisma<td>"+charsheet.charisma+"</td><td>"+charsheet.cha_mod.value+"</td></td></tr>";
+					divcontent += "</table></div>";
+					
+					divcontent +="<div id='attacks_defenses'>";
+					divcontent +="<div id='armor_classes'>";
+					divcontent +="<table id='armor_class_table'><caption>Armor Class</caption>";
+					divcontent +="<tr><td>AC</td><td>"+darthoridan.ac_normal.value+"</td><td>Armor Check Penalty</td><td>"+darthoridan.armor_check_penalty.value+"</td></tr>";
+					divcontent +="<tr><td>Touch</td><td>"+darthoridan.ac_touch.value+"</td><td>Max Dex Bonus</td><td>"+darthoridan.max_dex_bonus.value+"</td></tr>";
+					divcontent +="<tr><td>Flat-Footed</td><td>"+darthoridan.ac_flatfooted.value+"</td><td>Arcane Spell Failure</td><td>"+darthoridan.arcane_spell_failure.value+"</td></tr>";
+					divcontent +="</table></div>";
+					divcontent +="<div id='saves'>";
+					divcontent +="<table id='save_table'><caption>Saves</caption>";
+					divcontent +="<tr><td>Fortitude</td><td>"+darthoridan.fort.value+"</td></tr>";
+					divcontent +="<tr><td>Reflex</td><td>"+darthoridan.ref.value+"</td></tr>";
+					divcontent +="<tr><td>Will</td><td>"+darthoridan.will.value+"</td></tr>";
+					divcontent +="</table>";
+					divcontent += "</div>";
+					divcontent += "<div id='base_attack'>";
+					divcontent += "</div>";
+					divcontent += "</div>";
+					
+					
+					/*divcontent += "<div>";
+					var fooby = charsheet.find_bonus_spells(charsheet.int_mod.value);
+					for(var i = 0, len = fooby.length; i < len; i++)
+						divcontent += "<p>"+i+" lv: "+fooby[i]+"</p>";
+					divcontent += "</div>";*/
+					
+					div.html(divcontent);
+				//}
+				
+				//this.output();
+			};
+			
+			$(document).ready(function(){
+				darthoridan = new Charsheet();
+				darthoridan.name = "Darthoridan Steelbow";
+				darthoridan.race = "Elf";
+				darthoridan.alignment = "Lawful Neutral";
+				darthoridan.gender = "Male";
+				
+				darthoridan.base_strength = 12;
+				darthoridan.base_dexterity = 20;
+				darthoridan.base_constitution = 12;
+				darthoridan.base_intelligence = 18;
+				darthoridan.base_wisdom = 16;
+				darthoridan.base_charisma = 10;
+				
+				darthoridan.recalculate_mods();
+				
+				darthoridan.classes = {
+					"Aegis": {
+						hd: "d10",
+						skills: 4,
+						bab: "full",
+						fort: "good",
+						ref: "poor",
+						will: "good"
+					},
+					"Musket Master Gunslinger": {
+						hd: "d10",
+						skills: 4,
+						bab: "full",
+						fort: "good",
+						ref: "good",
+						will: "poor"
+					}
+				};
+			
+				SheetWriter(darthoridan, "charsheet");
+			});
+		</script>
+	</head>
+	<body>
+		<div id="charsheet"></div>
+	</body>
+</html>
